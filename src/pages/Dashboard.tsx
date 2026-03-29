@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StorageService } from '../services/storage';
-import { ExportService } from '../services/export';
-import { TrendingUp, Users, Smartphone, DollarSign, Download, Clock, Calendar, CreditCard, Eye, EyeOff, Clipboard, Check } from 'lucide-react';
+import { TrendingUp, Users, Smartphone, DollarSign, Clock, Calendar, CreditCard, Eye, EyeOff } from 'lucide-react';
 import type { AppData } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -12,10 +11,8 @@ const Dashboard = () => {
     const [data, setData] = useState<AppData | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMoney, setShowMoney] = useState(true);
-    const [copied, setCopied] = useState(false);
 
     const isAdmin = profile?.role === 'admin';
-    const storeCode = profile?.store_id;
 
     useEffect(() => {
         const loadData = async () => {
@@ -25,14 +22,6 @@ const Dashboard = () => {
         };
         loadData();
     }, []);
-
-    const copyCode = () => {
-        if (storeCode) {
-            navigator.clipboard.writeText(storeCode);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        }
-    };
 
     if (loading || !data) {
         return <div style={{ color: 'var(--text-secondary)', padding: '2rem', textAlign: 'center' }}>{t('dashboard.loading_dashboard')}</div>;
@@ -214,43 +203,24 @@ const Dashboard = () => {
     return (
         <div className="animate-fade-in">
             <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.2rem' }}>
-                        <h1 style={{ background: 'linear-gradient(to right, var(--accent-primary), #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>
-                            {t('dashboard.overview')}
-                        </h1>
-                        {profile && (
-                            <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: isAdmin ? 'rgba(99,102,241,0.15)' : 'rgba(16,185,129,0.15)', color: isAdmin ? 'var(--accent-primary)' : 'var(--success)', border: `1px solid ${isAdmin ? 'rgba(99,102,241,0.3)' : 'rgba(16,185,129,0.3)'}`, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                                {isAdmin ? t('nav.admin_badge') : t('nav.staff_badge')}
-                            </span>
-                        )}
-                    </div>
-                    {isAdmin && storeCode && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-secondary)', padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', width: 'fit-content' }}>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('dashboard.store_code_helper')}</span>
-                            <code style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: 600, fontFamily: 'monospace' }}>{storeCode}</code>
-                            <button onClick={copyCode} style={{ background: 'none', border: 'none', color: copied ? 'var(--success)' : 'var(--accent-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.2rem' }} title={t('common.copy')}>
-                                {copied ? <Check size={14} /> : <Clipboard size={14} />}
-                            </button>
-                        </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <h1 style={{ background: 'linear-gradient(to right, var(--accent-primary), #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>
+                        {t('dashboard.overview')}
+                    </h1>
+                    {profile && (
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: isAdmin ? 'rgba(99,102,241,0.15)' : 'rgba(16,185,129,0.15)', color: isAdmin ? 'var(--accent-primary)' : 'var(--success)', border: `1px solid ${isAdmin ? 'rgba(99,102,241,0.3)' : 'rgba(16,185,129,0.3)'}`, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                            {isAdmin ? t('nav.admin_badge') : t('nav.staff_badge')}
+                        </span>
                     )}
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <button
-                        className="btn-secondary"
-                        onClick={() => setShowMoney(!showMoney)}
-                        title={showMoney ? t('dashboard.hide_money') : t('dashboard.show_money')}
-                        style={{ padding: '0.6rem', borderRadius: '8px' }}
-                    >
-                        {showMoney ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                    <button
-                        className="btn-primary"
-                        onClick={() => ExportService.exportToExcel()}
-                    >
-                        <Download size={18} /> {t('dashboard.export_excel')}
-                    </button>
-                </div>
+                <button
+                    className="btn-secondary"
+                    onClick={() => setShowMoney(!showMoney)}
+                    title={showMoney ? t('dashboard.hide_money') : t('dashboard.show_money')}
+                    style={{ padding: '0.6rem', borderRadius: '8px' }}
+                >
+                    {showMoney ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
             </div>
 
             {/* Time-based Statistics */}

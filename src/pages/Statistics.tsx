@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { StorageService } from '../services/storage';
 import type { Sale, Phone, CaisseTransaction } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Package, AlertTriangle, Activity } from 'lucide-react';
+import { TrendingUp, Package, AlertTriangle, Activity, Download } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { ExportService } from '../services/export';
 
 const COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6'];
 
@@ -129,7 +130,16 @@ export default function Statistics() {
 
     return (
         <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '2rem' }}>{t('statistics.title')}</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0 }}>{t('statistics.title')}</h1>
+                <button
+                    className="btn-primary"
+                    onClick={() => ExportService.exportToExcel()}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                    <Download size={18} /> {t('dashboard.export_excel')}
+                </button>
+            </div>
 
             {/* QUICK STATS */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
