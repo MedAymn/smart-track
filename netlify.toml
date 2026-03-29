@@ -1,0 +1,17 @@
+# Netlify configuration for the Smart Track SPA
+
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+# SPA fallback — redirect all routes to index.html so HashRouter works
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Long-term immutable caching for Vite-hashed assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
