@@ -33,11 +33,9 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.02);
   --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
   
+  --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
   --radius-full: 9999px;
   
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -197,9 +195,17 @@ input:focus, select:focus, textarea:focus {
 }
 
 .glass-panel:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg), var(--shadow-glow);
-  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--accent-primary);
+}
+
+/* Panels that should NOT lift on hover (tables, lists, page containers) */
+.glass-panel.no-hover {
+  transform: none !important;
+}
+.glass-panel.no-hover:hover {
+  transform: none !important;
+  box-shadow: var(--shadow-md);
 }
 
 /* Next-Gen Buttons */
@@ -576,41 +582,8 @@ input, textarea, select {
   transform: translateY(-2px);
 }
 
-.glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  transition: var(--transition);
-}
-
-.glass-panel:hover {
-  box-shadow: var(--shadow-lg);
-  border-color: var(--accent-primary);
-}
-
-/* Animations Scroll Reveal */
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 /* RTL Refinements for Buttons and Inputs */
 [dir="rtl"] input, [dir="rtl"] select, [dir="rtl"] textarea {
-  text-align: right;
-}
-
-[dir="rtl"] .btn-primary, [dir="rtl"] .btn-secondary, [dir="rtl"] .btn-danger {
-  flex-direction: row-reverse;
-}
-
-[dir="rtl"] .stat-card {
   text-align: right;
 }
 

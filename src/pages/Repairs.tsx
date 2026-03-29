@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { StorageService } from '../services/storage';
 import type { RepairOrder, Client } from '../types';
-import { Wrench, Plus, Edit, Trash2, CheckCircle, Clock, AlertTriangle, XCircle, Truck, RefreshCcw } from 'lucide-react';
+import { Wrench, Plus, Edit, Trash2, CheckCircle, Clock, XCircle, Truck, RefreshCcw, DollarSign } from 'lucide-react';
 import { generateRepairWhatsAppLink } from '../utils/whatsapp';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
@@ -44,6 +44,12 @@ const Repairs = () => {
     const [form, setForm] = useState(emptyForm);
 
     useEffect(() => { loadData(); }, []);
+
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsModalOpen(false); };
+        if (isModalOpen) window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isModalOpen]);
 
     const loadData = async () => {
         setLoading(true);
@@ -184,7 +190,7 @@ const Repairs = () => {
                     { label: t('repairs.stats_total'), value: stats.total, color: '#6366f1', icon: <Wrench size={20}/> },
                     { label: t('repairs.stats_active'), value: stats.active, color: '#f59e0b', icon: <Clock size={20}/> },
                     { label: t('repairs.stats_done'), value: stats.done, color: '#10b981', icon: <CheckCircle size={20}/> },
-                    { label: t('repairs.stats_revenue'), value: `${stats.revenue.toLocaleString(language === 'ar' ? 'ar-DZ' : 'fr-DZ')} DA`, color: '#8b5cf6', icon: <AlertTriangle size={20}/> },
+                    { label: t('repairs.stats_revenue'), value: `${stats.revenue.toLocaleString(language === 'ar' ? 'ar-DZ' : 'fr-DZ')} DA`, color: '#8b5cf6', icon: <DollarSign size={20}/> },
                 ].map(s => (
                     <div key={s.label} className="glass-panel hover-lift" style={{ padding: '1.1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
@@ -212,7 +218,7 @@ const Repairs = () => {
             </div>
 
             {/* Orders Table */}
-            <div className="glass-panel" style={{ overflow: 'hidden' }}>
+            <div className="glass-panel no-hover" style={{ overflow: 'hidden' }}>
                 {/* Desktop View */}
                 <div className="mobile-hide" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>

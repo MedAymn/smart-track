@@ -51,7 +51,18 @@ const Debtors = () => {
         loadData();
     }, []);
 
-
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsSaleModalOpen(false);
+                setIsPaymentModalOpen(false);
+                setIsEditSaleModalOpen(false);
+            }
+        };
+        const anyOpen = isSaleModalOpen || isPaymentModalOpen || isEditSaleModalOpen;
+        if (anyOpen) window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isSaleModalOpen, isPaymentModalOpen, isEditSaleModalOpen]);
 
     const loadData = async () => {
         const data = await StorageService.getData();

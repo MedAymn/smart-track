@@ -175,7 +175,7 @@ const Settings: React.FC = () => {
     };
 
     return (
-        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 0 3rem' }}>
+        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 0 3rem', width: '100%', boxSizing: 'border-box' }}>
             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '0.4rem' }}>
                 {t('settings.title')}
             </h1>

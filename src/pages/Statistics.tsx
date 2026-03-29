@@ -209,12 +209,12 @@ export default function Statistics() {
                                         <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                <XAxis dataKey="monthInfo" stroke="rgba(255,255,255,0.3)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }} />
-                                <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }} width={60} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                                <XAxis dataKey="monthInfo" stroke="var(--border-color)" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} />
+                                <YAxis stroke="var(--border-color)" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} width={60} />
                                 <Tooltip
-                                    contentStyle={{ background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
-                                    itemStyle={{ color: '#fff' }}
+                                    contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    itemStyle={{ color: 'var(--text-main)' }}
                                 />
                                 <Legend />
                                 <Area type="monotone" name={`${t('statistics.entrants')} (DA)`} dataKey="income" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorIncome)" />
@@ -246,8 +246,8 @@ export default function Statistics() {
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    contentStyle={{ background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
-                                    itemStyle={{ color: '#fff' }}
+                                    contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }}
+                                    itemStyle={{ color: 'var(--text-main)' }}
                                 />
                             </PieChart>
                         </ResponsiveContainer>

@@ -375,10 +375,12 @@ const Dashboard = () => {
                                         });
                                         devicesString = models.join(', ');
                                     }
-                                    return (
+                                    const client = data.clients?.find((c: any) => c.id === sale.clientId);
+                                    const clientLabel = client?.name || sale.customerName || (language === 'ar' ? 'زبون' : 'Comptoir');
+                                return (
                                         <div key={sale.id} className="recent-activity-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
                                             <div>
-                                                <p style={{ fontWeight: '600', fontSize: '0.875rem' }}>{sale.customerName}</p>
+                                                <p style={{ fontWeight: '600', fontSize: '0.875rem' }}>{clientLabel}</p>
                                                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={devicesString}>{devicesString}</p>
                                             </div>
                                             <div style={{ textAlign: language === 'ar' ? 'left' : 'right' }}>

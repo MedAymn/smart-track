@@ -152,7 +152,7 @@ const Staff = () => {
             </div>
 
             {/* Staff List */}
-            <div className="glass-panel" style={{ overflow: 'hidden' }}>
+            <div className="glass-panel no-hover" style={{ overflow: 'hidden' }}>
                 <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h2 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>
                         {t('nav.team_members')}

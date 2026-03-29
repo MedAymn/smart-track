@@ -60,6 +60,12 @@ const Tasks = () => {
         loadData();
     }, [profile?.store_id]);
 
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsModalOpen(false); };
+        if (isModalOpen) window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isModalOpen]);
+
     const loadData = async () => {
         if (!profile?.store_id) return;
         setLoading(true);

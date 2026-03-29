@@ -52,6 +52,19 @@ const Inventory = () => {
         loadPhones();
     }, []);
 
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsModalOpen(false);
+                setIsEditModalOpen(false);
+                setIsReturnModalOpen(false);
+            }
+        };
+        const anyOpen = isModalOpen || isEditModalOpen || isReturnModalOpen;
+        if (anyOpen) window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isModalOpen, isEditModalOpen, isReturnModalOpen]);
+
     const loadPhones = async () => {
         const data = await StorageService.getData();
         setPhones(data.phones);
