@@ -5,7 +5,7 @@ import type { Language } from '../locales/translations';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (keyPath: string) => string;
+  t: (keyPath: string, params?: Record<string, string | number>) => string;
   dir: 'ltr' | 'rtl';
 }
 
@@ -44,7 +44,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [language, dir]);
 
-  const t = (keyPath: string): string => {
+  const t = (keyPath: string, params?: Record<string, string | number>): string => {
     const keys = keyPath.split('.');
     let value: any = translations[language];
 
@@ -52,11 +52,16 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (value && typeof value === 'object' && key in value) {
         value = value[key];
       } else {
-        return keyPath; // Fallback to key path if not found
+        return keyPath;
       }
     }
 
-    return typeof value === 'string' ? value : keyPath;
+    if (typeof value !== 'string') return keyPath;
+    if (!params) return value;
+
+    return value.replace(/\{(\w+)\}/g, (_: string, k: string) =>
+      params[k] !== undefined ? String(params[k]) : `{${k}}`
+    );
   };
 
   return (
