@@ -46,6 +46,8 @@ const Debtors = () => {
     const [scannerInput, setScannerInput] = useState('');
     const [showCameraScanner, setShowCameraScanner] = useState(false);
     const [isSubmittingSale, setIsSubmittingSale] = useState(false);
+    const [debtorsPage, setDebtorsPage] = useState(1);
+    const DEBTORS_PAGE_SIZE = 20;
 
     useEffect(() => {
         loadData();
@@ -264,6 +266,10 @@ const Debtors = () => {
         })
         .sort((a, b) => (b.daysOverdue ?? -1) - (a.daysOverdue ?? -1));
 
+    const sortedSalesForTable = [...sales].sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
+    const debtorsTotalPages = Math.ceil(sortedSalesForTable.length / DEBTORS_PAGE_SIZE);
+    const pagedSalesForTable = sortedSalesForTable.slice((debtorsPage - 1) * DEBTORS_PAGE_SIZE, debtorsPage * DEBTORS_PAGE_SIZE);
+
     return (
         <div className="animate-fade-in" style={{ padding: '1.5rem', maxWidth: '1100px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -453,7 +459,7 @@ const Debtors = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                [...sales].sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime()).map((sale) => {
+                                pagedSalesForTable.map((sale) => {
                                     const effectiveSalePrice = getEffectiveSaleValue(sale);
                                     const effectiveAmountPaid = getEffectiveAmountPaid(sale);
                                     const remainingDebt = effectiveSalePrice - effectiveAmountPaid;
@@ -571,6 +577,23 @@ const Debtors = () => {
                         </tbody>
                     </table>
                 </div>
+                {debtorsTotalPages > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', padding: '1rem' }}>
+                        <button
+                            onClick={() => setDebtorsPage(p => Math.max(1, p - 1))}
+                            disabled={debtorsPage === 1}
+                            className="btn-secondary"
+                            style={{ padding: '0.4rem 1rem', opacity: debtorsPage === 1 ? 0.4 : 1 }}
+                        >←</button>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{debtorsPage} / {debtorsTotalPages}</span>
+                        <button
+                            onClick={() => setDebtorsPage(p => Math.min(debtorsTotalPages, p + 1))}
+                            disabled={debtorsPage === debtorsTotalPages}
+                            className="btn-secondary"
+                            style={{ padding: '0.4rem 1rem', opacity: debtorsPage === debtorsTotalPages ? 0.4 : 1 }}
+                        >→</button>
+                    </div>
+                )}
 
                 {/* Mobile View Card List */}
                 <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem' }}>
@@ -580,7 +603,7 @@ const Debtors = () => {
                             <p>{t('debtors.no_sales')}</p>
                         </div>
                     ) : (
-                        [...sales].sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime()).map((sale) => {
+                        pagedSalesForTable.map((sale) => {
                             const remainingDebt = getEffectiveSaleValue(sale) - getEffectiveAmountPaid(sale);
                             const uiStatus = remainingDebt <= 0 ? 'paid' : 'pending';
                             const client = clients.find(c => c.id === sale.clientId);
@@ -625,7 +648,7 @@ const Debtors = () => {
                                                     </a>
                                                 ) : null;
                                             })()}
-                                            <button 
+                                            <button
                                                 onClick={() => {
                                                     const saleClient = clients.find(c => c.id === sale.clientId);
                                                     const salePhones = allPhones.filter(p => sale.phoneIds?.includes(p.id));

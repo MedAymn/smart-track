@@ -110,7 +110,10 @@ const Activity = () => {
                 {loading ? (
                     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>{t('common.loading')}...</div>
                 ) : logs.length === 0 ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>{t('activity.no_activity')}</div>
+                    <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                        <ActivityIcon size={48} style={{ opacity: 0.3 }} />
+                        <p style={{ margin: 0 }}>{t('activity.no_activity')}</p>
+                    </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {logs.map((log) => (

@@ -47,6 +47,8 @@ const Inventory = () => {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [showCameraScanner, setShowCameraScanner] = useState(false);
+    const [inventoryPage, setInventoryPage] = useState(1);
+    const INVENTORY_PAGE_SIZE = 20;
 
     useEffect(() => {
         loadPhones();
@@ -64,6 +66,8 @@ const Inventory = () => {
         if (anyOpen) window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [isModalOpen, isEditModalOpen, isReturnModalOpen]);
+
+    useEffect(() => { setInventoryPage(1); }, [search, statusFilter, dateFrom, dateTo]);
 
     const loadPhones = async () => {
         const data = await StorageService.getData();
@@ -382,9 +386,13 @@ const Inventory = () => {
             )}
 
             {/* Card View */}
-            {filteredPhones.length > 0 && (
+            {filteredPhones.length > 0 && (() => {
+                const reversedPhones = filteredPhones.slice().reverse();
+                const totalPages = Math.ceil(reversedPhones.length / INVENTORY_PAGE_SIZE);
+                const pagedPhones = reversedPhones.slice((inventoryPage - 1) * INVENTORY_PAGE_SIZE, inventoryPage * INVENTORY_PAGE_SIZE);
+                return (<>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '1.25rem' }}>
-                    {filteredPhones.slice().reverse().map((phone) => (
+                    {pagedPhones.map((phone) => (
                         <div key={phone.id} className="glass-panel stat-card hover-lift" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div style={{ flex: 1 }}>
@@ -530,7 +538,25 @@ const Inventory = () => {
                         </div>
                     ))}
                 </div>
-            )}
+                {totalPages > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem' }}>
+                        <button
+                            onClick={() => setInventoryPage(p => Math.max(1, p - 1))}
+                            disabled={inventoryPage === 1}
+                            className="btn-secondary"
+                            style={{ padding: '0.4rem 1rem', opacity: inventoryPage === 1 ? 0.4 : 1 }}
+                        >←</button>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{inventoryPage} / {totalPages}</span>
+                        <button
+                            onClick={() => setInventoryPage(p => Math.min(totalPages, p + 1))}
+                            disabled={inventoryPage === totalPages}
+                            className="btn-secondary"
+                            style={{ padding: '0.4rem 1rem', opacity: inventoryPage === totalPages ? 0.4 : 1 }}
+                        >→</button>
+                    </div>
+                )}
+                </>);
+            })()}
 
             {/* Add Phone Modal */}
             {isModalOpen && (

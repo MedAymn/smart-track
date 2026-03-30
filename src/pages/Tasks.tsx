@@ -156,7 +156,7 @@ const Tasks = () => {
 
     const isOverdue = (date: string | undefined) => {
         if (!date) return false;
-        return new Date(date) < new Date() && tasks.find(t => t.due_date === date)?.status !== 'done';
+        return new Date(date) < new Date();
     };
 
     return (
