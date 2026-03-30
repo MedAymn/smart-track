@@ -57,10 +57,12 @@ const Activity = () => {
 
     if (profile?.role !== 'admin') {
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
-                <ShieldAlert size={64} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                <h2 style={{ marginBottom: '0.5rem' }}>{t('activity.access_denied')}</h2>
-                <p>{t('activity.admin_only')}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', color: 'var(--text-muted)', padding: '2rem', textAlign: 'center' }}>
+                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                    <ShieldAlert size={40} style={{ color: '#f59e0b' }} />
+                </div>
+                <h2 style={{ marginBottom: '0.75rem', color: 'var(--text-main)', fontSize: '1.4rem' }}>{t('activity.access_denied')}</h2>
+                <p style={{ maxWidth: '380px', lineHeight: 1.6 }}>{t('activity.admin_only')}</p>
             </div>
         );
     }

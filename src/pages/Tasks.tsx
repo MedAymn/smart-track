@@ -3,17 +3,18 @@ import { useAuth } from '../contexts/AuthContext';
 import { TaskService } from '../services/storage';
 import { supabase } from '../services/supabase';
 import type { Task, Profile } from '../types';
-import { 
-    ClipboardList, 
-    Plus, 
-    Search, 
-    Calendar, 
-    CheckCircle2, 
-    Clock, 
-    Trash2, 
+import {
+    ClipboardList,
+    Plus,
+    Search,
+    Calendar,
+    CheckCircle2,
+    Clock,
+    Trash2,
     User,
     Check,
-    X
+    X,
+    Edit
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../contexts/ToastContext';
@@ -47,8 +48,10 @@ const Tasks = () => {
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     // Form state
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -61,10 +64,13 @@ const Tasks = () => {
     }, [profile?.store_id]);
 
     useEffect(() => {
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsModalOpen(false); };
-        if (isModalOpen) window.addEventListener('keydown', onKey);
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') { setIsModalOpen(false); setIsEditModalOpen(false); }
+        };
+        const anyOpen = isModalOpen || isEditModalOpen;
+        if (anyOpen) window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [isModalOpen]);
+    }, [isModalOpen, isEditModalOpen]);
 
     const loadData = async () => {
         if (!profile?.store_id) return;
@@ -105,7 +111,7 @@ const Tasks = () => {
             resetForm();
             loadData();
         } catch (error: any) {
-            showToast('Erreur: ' + error.message, 'error');
+            showToast(t('common.error') + ': ' + error.message, 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -125,7 +131,7 @@ const Tasks = () => {
             setTasks(prev => prev.map(tTask => tTask.id === taskId ? { ...tTask, status: newStatus } : tTask));
             showToast(t('common.save'), 'success');
         } catch (error: any) {
-            showToast('Erreur: ' + error.message, 'error');
+            showToast(t('common.error') + ': ' + error.message, 'error');
         }
     };
 
@@ -136,7 +142,41 @@ const Tasks = () => {
             setTasks(prev => prev.filter(tTask => tTask.id !== taskId));
             showToast(t('common.delete'), 'success');
         } catch (error: any) {
-            showToast('Erreur: ' + error.message, 'error');
+            showToast(t('common.error') + ': ' + error.message, 'error');
+        }
+    };
+
+    const openEditModal = (task: Task) => {
+        setEditingTask(task);
+        setTitle(task.title);
+        setDescription(task.description || '');
+        setAssignedTo(task.assigned_to || '');
+        setPriority(task.priority);
+        setDueDate(task.due_date ? task.due_date.split('T')[0] : '');
+        setIsEditModalOpen(true);
+    };
+
+    const handleEditTask = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingTask) return;
+        setIsSubmitting(true);
+        try {
+            await TaskService.updateTask(editingTask.id, {
+                title,
+                description,
+                assigned_to: assignedTo || undefined,
+                priority,
+                due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
+            });
+            showToast(t('common.save'), 'success');
+            setIsEditModalOpen(false);
+            setEditingTask(null);
+            resetForm();
+            loadData();
+        } catch (error: any) {
+            showToast(t('common.error') + ': ' + error.message, 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -220,8 +260,17 @@ const Tasks = () => {
             ) : filteredTasks.length === 0 ? (
                 <div style={{ padding: '4rem', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '20px', border: '2px dashed var(--border-color)' }}>
                     <ClipboardList size={48} style={{ margin: '0 auto 1rem auto', opacity: 0.3 }} />
-                    <h3 style={{ margin: 0, color: 'var(--text-main)' }}>{t('tasks.no_tasks')}</h3>
-                    <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>{searchQuery ? t('tasks.empty_search') : t('tasks.all_done')}</p>
+                    <h3 style={{ margin: 0, color: 'var(--text-main)' }}>
+                        {searchQuery ? t('tasks.empty_search') : tasks.length === 0 ? t('tasks.no_tasks_yet') : t('tasks.all_done')}
+                    </h3>
+                    <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                        {searchQuery ? '' : tasks.length === 0 ? t('tasks.no_tasks_yet_helper') : ''}
+                    </p>
+                    {tasks.length === 0 && isAdmin && (
+                        <button className="btn-primary" onClick={() => setIsModalOpen(true)} style={{ marginTop: '1.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Plus size={16} /> {t('tasks.new_task')}
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
@@ -258,12 +307,21 @@ const Tasks = () => {
                                     )}
                                 </div>
                                 {isAdmin && (
-                                    <button 
-                                        onClick={() => handleDeleteTask(task.id)}
-                                        style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
-                                    >
-                                        <Trash2 size={16} className="hover-danger" />
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                        <button
+                                            onClick={() => openEditModal(task)}
+                                            style={{ color: 'var(--accent-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                                            title={t('tasks.edit_task')}
+                                        >
+                                            <Edit size={15} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteTask(task.id)}
+                                            style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 )}
                             </div>
 
@@ -350,7 +408,7 @@ const Tasks = () => {
                                     required 
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
-                                    placeholder="Ex: Nettoyer la vitrine"
+                                    placeholder={t('tasks.task_placeholder')}
                                     style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                                 />
                             </div>
@@ -376,7 +434,7 @@ const Tasks = () => {
                                     >
                                         <option value="">{t('tasks.not_assigned')}</option>
                                         {staff.map(s => (
-                                            <option key={s.id} value={s.id}>{s.full_name || 'Inconnu'}</option>
+                                            <option key={s.id} value={s.id}>{s.full_name || t('common.unknown')}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -410,6 +468,56 @@ const Tasks = () => {
                                 <button type="submit" className="btn-primary" disabled={isSubmitting} style={{ flex: 2 }}>
                                     {isSubmitting ? '...' : t('common.add')}
                                 </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Task Modal */}
+            {isEditModalOpen && editingTask && (
+                <div className="modal-overlay" onClick={() => { setIsEditModalOpen(false); resetForm(); }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ margin: 0 }}>{t('tasks.edit_task')}</h2>
+                            <button onClick={() => { setIsEditModalOpen(false); resetForm(); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleEditTask}>
+                            <div style={{ marginBottom: '1.25rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600 }}>{t('common.title')} *</label>
+                                <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder={t('tasks.task_placeholder')} style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+                            </div>
+                            <div style={{ marginBottom: '1.25rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600 }}>{t('common.description')}</label>
+                                <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={t('common.notes_placeholder')} rows={3} style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', resize: 'none' }} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600 }}>{t('tasks.assign_to')}</label>
+                                    <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                                        <option value="">{t('tasks.not_assigned')}</option>
+                                        {staff.map(s => <option key={s.id} value={s.id}>{s.full_name || t('common.unknown')}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600 }}>{t('tasks.priority')}</label>
+                                    <select value={priority} onChange={e => setPriority(e.target.value as Task['priority'])} style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                                        <option value="low">{t('tasks.priority_low')}</option>
+                                        <option value="normal">{t('tasks.priority_normal')}</option>
+                                        <option value="high">{t('tasks.priority_high')}</option>
+                                        <option value="urgent">{t('tasks.priority_urgent')}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style={{ marginBottom: '2rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600 }}>{t('tasks.due_date')}</label>
+                                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button type="button" className="btn-secondary" onClick={() => { setIsEditModalOpen(false); resetForm(); }} style={{ flex: 1 }}>{t('common.cancel')}</button>
+                                <button type="submit" className="btn-primary" disabled={isSubmitting} style={{ flex: 2 }}>{isSubmitting ? '...' : t('common.save')}</button>
                             </div>
                         </form>
                     </div>

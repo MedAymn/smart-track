@@ -679,7 +679,7 @@ const Clients = () => {
                     {filteredClients.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)', background: 'var(--bg-secondary)', borderRadius: '14px' }}>
                             <UserPlus size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-                            <div>{clients.length === 0 ? t('clients.no_clients') : t('inventory.empty_state_search_helper')}</div>
+                            <div>{clients.length === 0 ? t('clients.no_clients') : t('clients.no_clients_search')}</div>
                         </div>
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '1rem' }}>

@@ -3,7 +3,7 @@ import { StorageService } from '../services/storage';
 import type { Phone, Supplier, Sale, Client } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { fr, arDZ } from 'date-fns/locale';
-import { Plus, Smartphone, Trash2, Search, Edit, RefreshCcw, ArchiveRestore, Camera, Package, DollarSign, ArrowLeftRight, Printer } from 'lucide-react';
+import { Plus, Smartphone, Trash2, Search, Edit, RefreshCcw, ArchiveRestore, Camera, Package, DollarSign, ArrowLeftRight, Printer, AlertTriangle } from 'lucide-react';
 import IMEIScanner from '../components/IMEIScanner';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -362,6 +362,28 @@ const Inventory = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Low Stock Alert */}
+            {phones.filter(p => p.status === 'inventory').length > 0 && phones.filter(p => p.status === 'inventory').length <= 5 && (
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.85rem 1.25rem',
+                    marginBottom: '1.25rem',
+                    borderRadius: '10px',
+                    background: 'rgba(245, 158, 11, 0.08)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    color: '#f59e0b',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                }}>
+                    <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                    <span>
+                        <strong>{t('inventory.low_stock_alert')}</strong> — {t('inventory.low_stock_helper')}
+                    </span>
+                </div>
+            )}
 
             {/* Empty State Graphic */}
             {filteredPhones.length === 0 && (

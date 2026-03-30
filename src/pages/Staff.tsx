@@ -257,22 +257,22 @@ const Staff = () => {
                 )}
             </div>
 
-            {/* Note about auth accounts */}
+            {/* Note about removing members */}
             <div style={{
                 marginTop: '1rem',
                 padding: '0.85rem 1rem',
                 borderRadius: '10px',
-                background: 'rgba(245, 158, 11, 0.08)',
-                border: '1px solid rgba(245, 158, 11, 0.2)',
+                background: 'rgba(99, 102, 241, 0.06)',
+                border: '1px solid rgba(99, 102, 241, 0.15)',
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '0.6rem',
                 fontSize: '0.8rem',
                 color: 'var(--text-muted)',
             }}>
-                <ShieldAlert size={16} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
+                <ShieldAlert size={16} style={{ color: 'var(--accent-primary)', flexShrink: 0, marginTop: 1 }} />
                 <span>
-                    {t('nav.supabase_note')}
+                    {t('nav.remove_note')}
                 </span>
             </div>
         </div>

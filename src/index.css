@@ -8,6 +8,7 @@
   
   --text-main: #0F172A;        /* Deep slate for high contrast and readability */
   --text-muted: #64748B;
+  --text-secondary: #64748B;
   
   /* Ultra-vibrant Gradients */
   --accent-primary: #3B82F6; 
@@ -49,6 +50,7 @@
   
   --text-main: #F8FAFC;
   --text-muted: #94A3B8;
+  --text-secondary: #94A3B8;
   
   --accent-primary: #818CF8; 
   --accent-hover: #A5B4FC;

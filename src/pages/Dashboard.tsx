@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { StorageService } from '../services/storage';
-import { TrendingUp, Users, Smartphone, DollarSign, Clock, Calendar, CreditCard, Eye, EyeOff } from 'lucide-react';
+import { TrendingUp, Users, Smartphone, DollarSign, Calendar, CreditCard, Eye, EyeOff, ShoppingCart } from 'lucide-react';
 import type { AppData } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+
+type PeriodFilter = 'today' | 'week' | 'month' | 'custom';
 
 const Dashboard = () => {
     const { profile } = useAuth();
@@ -11,6 +13,9 @@ const Dashboard = () => {
     const [data, setData] = useState<AppData | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMoney, setShowMoney] = useState(true);
+    const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month');
+    const [customFrom, setCustomFrom] = useState('');
+    const [customTo, setCustomTo] = useState('');
 
     const isAdmin = profile?.role === 'admin';
 
@@ -63,9 +68,35 @@ const Dashboard = () => {
 
     // Filter by time for detailed stats
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
+
+    // Period filter helpers
+    const getPeriodRange = (): { from: Date; to: Date; label: string } => {
+        const to = new Date(); to.setHours(23, 59, 59, 999);
+        if (periodFilter === 'today') {
+            const from = new Date(); from.setHours(0, 0, 0, 0);
+            return { from, to, label: t('dashboard.today') };
+        }
+        if (periodFilter === 'week') {
+            const from = new Date(); from.setDate(from.getDate() - 6); from.setHours(0, 0, 0, 0);
+            return { from, to, label: t('dashboard.this_week') };
+        }
+        if (periodFilter === 'custom' && customFrom && customTo) {
+            const from = new Date(customFrom); from.setHours(0, 0, 0, 0);
+            const toCustom = new Date(customTo); toCustom.setHours(23, 59, 59, 999);
+            return { from, to: toCustom, label: `${customFrom} → ${customTo}` };
+        }
+        // month (default)
+        const from = new Date(currentYear, currentMonth, 1);
+        return { from, to, label: t('dashboard.this_month') };
+    };
+    const { from: periodFrom, to: periodTo, label: periodLabel } = getPeriodRange();
+
+    const isInPeriod = (dateStr: string) => {
+        const d = new Date(dateStr);
+        return d >= periodFrom && d <= periodTo;
+    };
 
     const getEffectiveSaleValue = (sale: any) => {
         let deduction = 0;
@@ -81,24 +112,30 @@ const Dashboard = () => {
         return Math.max(0, Number(sale.salePrice) - deduction);
     };
 
-    const salesToday = data.sales.filter(s => s.saleDate.startsWith(todayStr));
-    const revenueToday = salesToday.reduce((sum, s) => sum + getEffectiveSaleValue(s), 0);
-    const paymentsToday = data.payments.filter(p => p.paymentDate.startsWith(todayStr)).reduce((sum, p) => sum + p.amount, 0)
-        + (data.caisseTransactions || []).filter(t => t.type === 'in' && t.transactionDate.startsWith(todayStr)).reduce((sum, t) => sum + t.amount, 0);
+    // Bénéfice Net = Prix vente - Prix achat des téléphones vendus
+    const calcGrossProfit = (salesToCalc: typeof data.sales) =>
+        salesToCalc.reduce((sum, sale) => {
+            const salePhones = (sale.phoneIds || []).map((id: string) => data.phones.find(p => p.id === id)).filter(Boolean) as any[];
+            const soldPhones = salePhones.filter((p: any) => p.status !== 'returned');
+            if (soldPhones.length === 0 && salePhones.length > 0) return sum;
 
-    const salesThisMonth = data.sales.filter(s => {
-        const d = new Date(s.saleDate);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    });
-    const revenueThisMonth = salesThisMonth.reduce((sum, s) => sum + getEffectiveSaleValue(s), 0);
-    const paymentsThisMonth = data.payments.filter(p => {
-        const d = new Date(p.paymentDate);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }).reduce((sum, p) => sum + Number(p.amount), 0)
-        + (data.caisseTransactions || []).filter(t => {
-            const d = new Date(t.transactionDate);
-            return t.type === 'in' && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-        }).reduce((sum, t) => sum + Number(t.amount), 0);
+            if (salePhones.length === 0 && (sale as any).phoneId) {
+                const p = data.phones.find(ph => ph.id === (sale as any).phoneId);
+                if (p && p.status === 'returned') return sum;
+                if (p) soldPhones.push(p);
+            }
+
+            const totalCost = soldPhones.reduce((c: number, p: any) => c + Number(p.purchasePrice), 0);
+            const effectiveSalePrice = getEffectiveSaleValue(sale);
+            return sum + (effectiveSalePrice - totalCost);
+        }, 0);
+
+    // Dynamic period stats
+    const salesInPeriod = data.sales.filter(s => isInPeriod(s.saleDate));
+    const revenueInPeriod = salesInPeriod.reduce((sum, s) => sum + getEffectiveSaleValue(s), 0);
+    const paymentsInPeriod = data.payments.filter(p => isInPeriod(p.paymentDate)).reduce((sum, p) => sum + Number(p.amount), 0)
+        + (data.caisseTransactions || []).filter(t => t.type === 'in' && isInPeriod(t.transactionDate)).reduce((sum, t) => sum + Number(t.amount), 0);
+    const profitInPeriod = calcGrossProfit(salesInPeriod);
 
     const calculateProfit = (salesToCalculate: typeof data.sales, checkMonth?: number, checkYear?: number, checkDayStr?: string) => {
         // Calculate standard Gross Profit (Net de ventes): salePrice - purchasePrice
@@ -161,29 +198,6 @@ const Dashboard = () => {
         return grossProfit - outs - returnedLossInThisPeriod;
     };
 
-    // Bénéfice Net = Prix vente - Prix achat des téléphones vendus
-    const calcGrossProfit = (salesToCalc: typeof data.sales) =>
-        salesToCalc.reduce((sum, sale) => {
-            const phones = (sale.phoneIds || []).map((id: string) => data.phones.find(p => p.id === id)).filter(Boolean) as any[];
-            const soldPhones = phones.filter((p: any) => p.status !== 'returned');
-            if (soldPhones.length === 0 && phones.length > 0) return sum; // all returned
-
-            // if old sale without phoneIds
-            if (phones.length === 0 && (sale as any).phoneId) {
-                const p = data.phones.find(ph => ph.id === (sale as any).phoneId);
-                if (p && p.status === 'returned') return sum;
-                if (p) soldPhones.push(p);
-            }
-
-            const totalCost = soldPhones.reduce((c: number, p: any) => c + Number(p.purchasePrice), 0);
-            const effectiveSalePrice = getEffectiveSaleValue(sale);
-
-            return sum + (effectiveSalePrice - totalCost);
-        }, 0);
-
-    const profitToday = calcGrossProfit(salesToday);
-    const profitThisMonth = calcGrossProfit(salesThisMonth);
-
     // Calculate historical monthly profits
     const historicalMonths: { label: string, profit: number }[] = [];
     for (let i = 0; i < 6; i++) {
@@ -223,66 +237,43 @@ const Dashboard = () => {
                 </button>
             </div>
 
-            {/* Time-based Statistics */}
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--text-muted)' }}>{t('dashboard.period_stats')}</h2>
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2.5rem'
-            }}>
-                <div className="glass-panel stat-card" style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: '500' }}>{t('dashboard.today')}</span>
-                        <Clock size={18} style={{ color: 'var(--accent-primary)' }} />
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                        <div>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('dashboard.sales')}</p>
-                            <p style={{ fontSize: '1.25rem', fontWeight: '700' }}>{salesToday.length} <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 'normal', display: 'block' }}>{formatMoney(revenueToday)}</span></p>
-                        </div>
-                        <div>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('dashboard.collected')}</p>
-                            <p style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--success)' }}>{formatMoney(paymentsToday, '')} <span style={{ fontSize: '0.875rem', fontWeight: 'normal', display: 'block' }}>DZD</span></p>
-                        </div>
-                        {isAdmin ? (
-                            <div>
-                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('dashboard.net_profit')}</p>
-                                <p style={{ fontSize: '1.25rem', fontWeight: '700', color: profitToday >= 0 ? 'var(--accent-primary)' : 'var(--danger)' }}>{profitToday > 0 ? '+' : ''}{formatMoney(profitToday, '')} <span style={{ fontSize: '0.875rem', fontWeight: 'normal', display: 'block' }}>DZD</span></p>
-                            </div>
-                        ) : (
-                            <div>
-                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('dashboard.net_profit')}</p>
-                                <p style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-muted)', marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><EyeOff size={14}/> {t('dashboard.access_reserved')}</p>
-                            </div>
-                        )}
+            {/* Period Filter + Stats */}
+            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Calendar size={18} style={{ color: 'var(--accent-primary)' }} />
+                        {t('dashboard.period_stats')} — <span style={{ color: 'var(--accent-primary)' }}>{periodLabel}</span>
+                    </h2>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        {(['today', 'week', 'month', 'custom'] as PeriodFilter[]).map(p => (
+                            <button key={p} onClick={() => setPeriodFilter(p)} style={{ padding: '0.35rem 0.9rem', borderRadius: '8px', border: '1.5px solid', borderColor: periodFilter === p ? 'var(--accent-primary)' : 'var(--border-color)', background: periodFilter === p ? 'rgba(59,130,246,0.12)' : 'transparent', color: periodFilter === p ? 'var(--accent-primary)' : 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                {p === 'today' ? t('dashboard.today') : p === 'week' ? t('dashboard.this_week') : p === 'month' ? t('dashboard.this_month') : t('dashboard.custom')}
+                            </button>
+                        ))}
                     </div>
                 </div>
-
-                <div className="glass-panel stat-card" style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: '500' }}>{t('dashboard.this_month')}</span>
-                        <Calendar size={18} style={{ color: 'var(--accent-primary)' }} />
+                {periodFilter === 'custom' && (
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                        <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '0.875rem' }} />
+                        <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '0.875rem' }} />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                        <div>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('dashboard.sales')}</p>
-                            <p style={{ fontSize: '1.25rem', fontWeight: '700' }}>{salesThisMonth.length} <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 'normal', display: 'block' }}>{formatMoney(revenueThisMonth)}</span></p>
-                        </div>
-                        <div>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('dashboard.collected')}</p>
-                            <p style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--success)' }}>{formatMoney(paymentsThisMonth, '')} <span style={{ fontSize: '0.875rem', fontWeight: 'normal', display: 'block' }}>DZD</span></p>
-                        </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>{t('dashboard.sales')}</p>
+                        <p style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>{salesInPeriod.length}</p>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{formatMoney(revenueInPeriod)}</p>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>{t('dashboard.collected')}</p>
+                        <p style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0, color: 'var(--success)' }}>{formatMoney(paymentsInPeriod)}</p>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>{t('dashboard.net_profit')}</p>
                         {isAdmin ? (
-                            <div>
-                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('dashboard.net_profit')}</p>
-                                <p style={{ fontSize: '1.25rem', fontWeight: '700', color: profitThisMonth >= 0 ? 'var(--accent-primary)' : 'var(--danger)' }}>{profitThisMonth > 0 ? '+' : ''}{formatMoney(profitThisMonth, '')} <span style={{ fontSize: '0.875rem', fontWeight: 'normal', display: 'block' }}>DZD</span></p>
-                            </div>
+                            <p style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0, color: profitInPeriod >= 0 ? 'var(--accent-primary)' : 'var(--danger)' }}>{profitInPeriod > 0 ? '+' : ''}{formatMoney(profitInPeriod)}</p>
                         ) : (
-                            <div>
-                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('dashboard.net_profit')}</p>
-                                <p style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-muted)', marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><EyeOff size={14}/> {t('dashboard.access_reserved')}</p>
-                            </div>
+                            <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><EyeOff size={14} /> {t('dashboard.access_reserved')}</p>
                         )}
                     </div>
                 </div>
@@ -363,7 +354,10 @@ const Dashboard = () => {
                             {t('dashboard.recent_sales')}
                         </h2>
                         {data.sales.length === 0 ? (
-                            <p style={{ color: 'var(--text-muted)' }}>{t('dashboard.no_recent_sales')}</p>
+                            <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-muted)' }}>
+                                <ShoppingCart size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+                                <p style={{ margin: 0 }}>{t('dashboard.no_recent_sales')}</p>
+                            </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                 {data.sales.slice().reverse().slice(0, 5).map(sale => {
@@ -376,7 +370,7 @@ const Dashboard = () => {
                                         devicesString = models.join(', ');
                                     }
                                     const client = data.clients?.find((c: any) => c.id === sale.clientId);
-                                    const clientLabel = client?.name || sale.customerName || (language === 'ar' ? 'زبون' : 'Comptoir');
+                                    const clientLabel = client?.name || sale.customerName || t('common.unknown');
                                 return (
                                         <div key={sale.id} className="recent-activity-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
                                             <div>

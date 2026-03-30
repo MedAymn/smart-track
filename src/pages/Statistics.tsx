@@ -126,7 +126,7 @@ export default function Statistics() {
         return (totInCaisse + totPayments) - (totOutCaisse + totSupplierPayments + totReturns);
     }, [caisseTransactions, payments, supplierPayments, phones]);
 
-    if (loading) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>{t('common.loading')}...</div>;
+    if (loading) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>{t('common.loading')}...</div>;
 
     return (
         <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -196,6 +196,12 @@ export default function Statistics() {
                 {/* Cashflow Chart */}
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
                     <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', color: 'var(--text-primary)' }}>{t('statistics.cashflow_chart')}</h2>
+                    {monthlyIncome.every(m => m.income === 0 && m.expenses === 0) ? (
+                        <div style={{ height: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', gap: '0.75rem' }}>
+                            <TrendingUp size={40} style={{ opacity: 0.3 }} />
+                            <p style={{ margin: 0 }}>{t('statistics.no_sales_data')}</p>
+                        </div>
+                    ) : (
                     <div style={{ width: '100%', height: 300 }}>
                         <ResponsiveContainer>
                             <AreaChart data={monthlyIncome}>
@@ -222,11 +228,18 @@ export default function Statistics() {
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
+                    )}
                 </div>
 
                 {/* Top Phones Chart */}
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
                     <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', color: 'var(--text-primary)' }}>{t('statistics.top_models')}</h2>
+                    {topSales.length === 0 ? (
+                        <div style={{ height: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', gap: '0.75rem' }}>
+                            <Package size={40} style={{ opacity: 0.3 }} />
+                            <p style={{ margin: 0 }}>{t('statistics.no_models_data')}</p>
+                        </div>
+                    ) : (
                     <div style={{ width: '100%', height: 300 }}>
                         <ResponsiveContainer>
                             <PieChart>
@@ -252,6 +265,7 @@ export default function Statistics() {
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
+                    )}
                 </div>
             </div>
         </div>
